@@ -1,0 +1,76 @@
+# WireGuard VPN Server Setup (Ubuntu/Debian)
+
+## 1. Install WireGuard
+
+    sudo apt update
+    sudo apt install wireguard -y
+
+
+## 2. Generate Server Keys
+
+    wg genkey | tee server_private.key | wg pubkey > server_public.key
+
+Verify keys were created:
+
+    cat server_private.key
+    cat server_public.key
+
+
+## 3. Create WireGuard Config
+
+    sudo nano /etc/wireguard/wg0.conf
+
+Add the following (replace [SERVER_PRIVATE_KEY] with output of `cat server_private.key`):
+
+    [Interface]
+    Address = 10.0.0.1/24
+    ListenPort = 51820
+    PrivateKey = [SERVER_PRIVATE_KEY]
+
+    # NAT/masquerade for routing client traffic to the internet
+    # Replace "ens5" with your default network interface (check: ip route list default)
+    PostUp = iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
+    PreDown = iptables -t nat -D POSTROUTING -o ens5 -j MASQUERADE
+
+
+## 4. Enable IP Forwarding
+
+    sudo nano /etc/sysctl.conf
+
+Add or uncomment this line:
+
+    net.ipv4.ip_forward=1
+
+Apply changes:
+
+    sudo sysctl -p
+
+
+## 5. Start the VPN
+
+    sudo wg-quick up wg0
+
+
+## 6. Add Peer (Client)
+
+Edit the config:
+
+    sudo nano /etc/wireguard/wg0.conf
+
+Add a [Peer] block for each client (use the client's public key from their machine):
+
+    [Peer]
+    PublicKey = [CLIENT_PUBLIC_KEY]
+    AllowedIPs = 10.0.0.2/32
+
+Reload config to apply peer changes:
+
+    sudo wg-quick down wg0
+    sudo wg-quick up wg0
+
+
+---
+Notes:
+- PostUp/PreDown: Run iptables when VPN starts/stops
+- MASQUERADE: Enables NAT so client traffic appears to come from the server
+- To find your default interface: ip route list default

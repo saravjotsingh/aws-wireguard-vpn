@@ -1,0 +1,27 @@
+# WireGuard Client Config
+
+## Generate Keys
+
+    wg genkey | tee client_private.key | wg pubkey > client_public.key
+
+Share the public key with the server admin. Get the server's public key from them.
+
+
+## Client Config
+
+Replace placeholders with your actual values:
+
+    [Interface]
+    PrivateKey = [CLIENT_PRIVATE_KEY]
+    Address = 10.0.0.2/32
+    DNS = 1.1.1.1
+
+    [Peer]
+    PublicKey = [SERVER_PUBLIC_KEY]
+    Endpoint = [YOUR_AWS_PUBLIC_IP]:51820
+    AllowedIPs = 0.0.0.0/0
+    PersistentKeepalive = 25
+
+- [CLIENT_PRIVATE_KEY] — output of `cat client_private.key`
+- [SERVER_PUBLIC_KEY] — from your server admin
+- [YOUR_AWS_PUBLIC_IP] — your EC2 instance's public IP
